@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resource Allocation Game</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f5f7fa;
+    }
+    h1, h2, h3 {
+      color: #2c3e50;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .row {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 10px;
+    }
+    .column {
+      flex: 1;
+    }
+    input, button, select {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    button:disabled {
+      background-color: #bdc3c7;
+      cursor: not-allowed;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 15px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .step-button {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .status-box {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+    }
+    .status-safe {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status-unsafe {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .visualization {
+      display: flex;
+      gap: 20px;
+      overflow-x: auto;
+    }
+    .resource-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 100px;
+    }
+    .resource-bar {
+      width: 60px;
+      height: 200px;
+      background-color: #e0e0e0;
+      border: 1px solid #333;
+      position: relative;
+      margin-top: 10px;
+    }
+    .resource-fill {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      background-color: #3498db;
+      transition: height 0.5s;
+    }
+    .process-circle {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      margin: 5px;
+    }
+    .process-waiting {
+      background-color: #f39c12;
+      color: white;
+    }
+    .process-running {
+      background-color: #2ecc71;
+      color: white;
+    }
+    .process-completed {
+      background-color: #95a5a6;
+      color: white;
+    }
+    .process-blocked {
+      background-color: #e74c3c;
+      color: white;
+    }
+    .legend {
+      display: flex;
+      gap: 20px;
+      margin: 10px 0;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .legend-color {
+      width: 20px;
+      height: 20px;
+    }
+    .steps-list {
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 10px;
+      background-color: #f8f9fa;
+      border: 1px solid #e9ecef;
+      border-radius: 4px;
+    }
+    .step-item {
+      padding: 5px 0;
+      border-bottom: 1px solid #e9ecef;
+    }
+    .step-item:last-child {
+      border-bottom: none;
+    }
+    .current-step {
+      background-color: #e2f0fd;
+    }
+    /* Additional styling for pure JS approach */
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="container">
+    <div class="card">
+      <h1>Resource Allocation Game</h1>
+      <p>A visualization of deadlock prevention using Banker's algorithm and game theory.</p>
+    </div>
+    
+    <!-- Step 1: Configure Resources -->
+    <div id="resourceConfig" class="card">
+      <h2>Configure Resources</h2>
+      <div class="form-group">
+        <label for="numResources">Number of resources:</label>
+        <input id="numResources" type="number" min="1" value="3">
+      </div>
+      
+      <div class="form-group">
+        <label for="numProcesses">Number of processes:</label>
+        <input id="numProcesses" type="number" min="1" value="3">
+      </div>
+      
+      <div id="resourceInputs">
+        <!-- Dynamic resource inputs will be generated here -->
+      </div>
+      
+      <div class="form-group">
+        <button id="submitResources">Next: Configure Processes</button>
+      </div>
+    </div>
+    
+    <!-- Step 2: Configure Processes -->
+    <div id="processConfig" class="card hidden">
+      <h2 id="processTitle">Configure Process</h2>
+      <p>Define the maximum resource needs for each process.</p>
+      
+      <div id="processResourceInputs">
+        <!-- Dynamic process resource inputs will be generated here -->
+      </div>
+      
+      <div class="form-group">
+        <button id="submitProcess">Next Process</button>
+      </div>
+    </div>
+    
+    <!-- Step 3: Simulation Results -->
+    <div id="simulationResults" class="hidden">
+      <div class="card">
+        <h2>Simulation Results</h2>
+        
+        <div id="safetyStatus" class="status-box">
+          <!-- Safety status will be shown here -->
+        </div>
+        
+        <div class="row">
+          <div class="column">
+            <h3>Strategy</h3>
+            <p id="strategy"></p>
+          </div>
+        </div>
+        
+        <div class="row">
+          <button id="resetSimulation">Reset Simulation</button>
+        </div>
+      </div>
+      
+      <div class="card">
+        <h2>Resource Allocation Visualization</h2>
+        
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-color process-waiting"></div>
+            <span>Waiting</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color process-running"></div>
+            <span>Resources Allocated</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color process-completed"></div>
+            <span>Completed</span>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="column">
+            <h3>Resources</h3>
+            <div id="resourceVisualization" class="visualization">
+              <!-- Resource bars will be generated here -->
+            </div>
+          </div>
+          
+          <div class="column">
+            <h3>Processes</h3>
+            <div id="processVisualization" class="visualization">
+              <!-- Process circles will be generated here -->
+            </div>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="column">
+            <h3>Resource Allocation Table</h3>
+            <div id="allocationTableContainer">
+              <!-- Table will be generated here -->
+            </div>
+          </div>
+        </div>
+        
+        <div class="row">
+          <div class="column">
+            <h3>Step-by-Step Allocation</h3>
+            <div id="stepsList" class="steps-list">
+              <!-- Steps will be generated here -->
+            </div>
+          </div>
+        </div>
+        
+        <div class="step-button">
+          <button id="resetSteps">Reset Steps</button>
+          <button id="nextStep">Start Simulation</button>
+        </div>
+        
+        <div id="completionStatus" class="hidden">
+          <!-- Completion status will be shown here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // The core banker's algorithm logic
+    class ResourceAllocationGame {
+      constructor(resources, processes) {
+        this.available = JSON.parse(JSON.stringify(resources));
+        this.max_resources = JSON.parse(JSON.stringify(resources));
+        this.process_count = processes.length;
+        this.resource_count = Object.keys(resources).length;
+        this.resource_names = Object.keys(resources);
+        
+        this.processes = JSON.parse(JSON.stringify(processes));
+        this.allocated = {};
+        this.need = {};
+        
+        for (const p of processes) {
+          const pid = p.pid;
+          this.allocated[pid] = {};
+          this.need[pid] = {};
+          
+          for (const r of this.resource_names) {
+            this.allocated[pid][r] = 0;
+            this.need[pid][r] = p.max_claim[r] || 0;
+          }
+        }
+      }
+      
+      is_safe_state() {
+        const work = JSON.parse(JSON.stringify(this.available));
+        const finish = {};
+        
+        for (const p of this.processes) {
+          finish[p.pid] = false;
+        }
+        
+        const sequence = [];
+        let found = true;
+        
+        while (found) {
+          found = false;
+          
+          for (const p of this.processes) {
+            const pid = p.pid;
+            
+            if (!finish[pid]) {
+              const can_allocate = this.resource_names.every(r => this.need[pid][r] <= work[r]);
+              
+              if (can_allocate) {
+                found = true;
+                finish[pid] = true;
+                sequence.push(pid);
+                
+                for (const r of this.resource_names) {
+                  work[r] += this.allocated[pid][r];
+                }
+                
+                break;
+              }
+            }
+          }
+        }
+        
+        const all_finished = Object.values(finish).every(f => f);
+        return [all_finished, all_finished ? sequence : null];
+      }
+      
+      utility_function(pid) {
+        const process = this.processes.find(p => p.pid === pid);
+        if (!process) return 0;
+        
+        const total_needed = Object.values(process.max_claim).reduce((sum, val) => sum + val, 0);
+        const total_allocated = Object.values(this.allocated[pid]).reduce((sum, val) => sum + val, 0);
+        const allocation_ratio = total_needed > 0 ? total_allocated / total_needed : 0;
+        
+        const priority = process.priority || 1;
+        const waiting_time = process.waiting_time || 0;
+        const waiting_penalty = waiting_time > 0 ? 1 / (1 + waiting_time) : 1;
+        
+        return (allocation_ratio * 0.5 + priority * 0.3) * waiting_penalty;
+      }
+      
+      next_best_allocation() {
+        let best_move = null;
+        let best_utility = -1;
+        
+        for (const process of this.processes) {
+          const pid = process.pid;
+          
+          for (const resource of this.resource_names) {
+            const current_need = this.need[pid][resource];
+            
+            if (current_need <= 0) continue;
+            
+            if (this.available[resource] >= 1) {
+              this.available[resource] -= 1;
+              this.allocated[pid][resource] += 1;
+              this.need[pid][resource] -= 1;
+              
+              const [is_safe] = this.is_safe_state();
+              
+              if (is_safe) {
+                const utility = this.utility_function(pid);
+                if (utility > best_utility) {
+                  best_utility = utility;
+                  best_move = [pid, resource, 1];
+                }
+              }
+              
+              this.available[resource] += 1;
+              this.allocated[pid][resource] -= 1;
+              this.need[pid][resource] += 1;
+            }
+          }
+        }
+        
+        return best_move;
+      }
+      
+      build_safe_schedule() {
+        const allocation_sequence = [];
+        const execution_sequence = [];
+        
+        let progress = true;
+        const completed_processes = new Set();
+        const strategy = "BANKER'S ALGORITHM WITH UTILITY OPTIMIZATION";
+        
+        while (progress && completed_processes.size < this.processes.length) {
+          const next_move = this.next_best_allocation();
+          
+          if (!next_move) {
+            progress = false;
+            continue;
+          }
+          
+          const [pid, resource, amount] = next_move;
+          this.available[resource] -= amount;
+          this.allocated[pid][resource] += amount;
+          this.need[pid][resource] -= amount;
+          allocation_sequence.push([pid, resource, amount]);
+          
+          const process_completed = this.resource_names.every(r => this.need[pid][r] === 0);
+          
+          if (process_completed && !completed_processes.has(pid)) {
+            completed_processes.add(pid);
+            execution_sequence.push(pid);
+            
+            for (const r of this.resource_names) {
+              this.available[r] += this.allocated[pid][r];
+              this.allocated[pid][r] = 0;
+            }
+          }
+        }
+        
+        if (completed_processes.size === this.processes.length) {
+          return [strategy, allocation_sequence, execution_sequence];
+        } else {
+          return ["DEADLOCK UNAVOIDABLE", allocation_sequence, execution_sequence];
+        }
+      }
+    }
+
+    // Application state
+    const appState = {
+      step: 0,
+      numResources: 3,
+      numProcesses: 3,
+      configStep: 1,
+      resources: {},
+      processes: [],
+      tempResources: {},
+      tempProcess: { pid: "", max_claim: {}, priority: 1 },
+      currentProcessIndex: 0,
+      initialSafe: null,
+      initialSequence: [],
+      strategy: "",
+      allocationSequence: [],
+      executionSequence: [],
+      simulationState: {
+        available: {},
+        allocated: {},
+        need: {},
+        status: {}
+      },
+      simulationStep: -1,
+      simulationCompleted: false
+    };
+
+    // DOM elements
+    const elements = {
+      resourceConfig: document.getElementById('resourceConfig'),
+      processConfig: document.getElementById('processConfig'),
+      processTitle: document.getElementById('processTitle'),
+      simulationResults: document.getElementById('simulationResults'),
+      numResources: document.getElementById('numResources'),
+      numProcesses: document.getElementById('numProcesses'),
+      resourceInputs: document.getElementById('resourceInputs'),
+      processResourceInputs: document.getElementById('processResourceInputs'),
+      submitResources: document.getElementById('submitResources'),
+      submitProcess: document.getElementById('submitProcess'),
+      safetyStatus: document.getElementById('safetyStatus'),
+      strategy: document.getElementById('strategy'),
+      resetSimulation: document.getElementById('resetSimulation'),
+      resourceVisualization: document.getElementById('resourceVisualization'),
+      processVisualization: document.getElementById('processVisualization'),
+      allocationTableContainer: document.getElementById('allocationTableContainer'),
+      stepsList: document.getElementById('stepsList'),
+      resetSteps: document.getElementById('resetSteps'),
+      nextStep: document.getElementById('nextStep'),
+      completionStatus: document.getElementById('completionStatus')
+    };
+
+    // Initialize the application
+    function init() {
+      // Set up event listeners
+      elements.numResources.addEventListener('change', updateResourceInputs);
+      elements.numProcesses.addEventListener('change', updateNumProcesses);
+      elements.submitResources.addEventListener('click', submitResources);
+      elements.submitProcess.addEventListener('click', submitProcess);
+      elements.resetSimulation.addEventListener('click', resetSimulation);
+      elements.resetSteps.addEventListener('click', resetSteps);
+      elements.nextStep.addEventListener('click', stepSimulation);
+      
+      // Initialize resource inputs
+      updateResourceInputs();
+    }
+
+    // Update resource input fields
+    function updateResourceInputs() {
+      appState.numResources = parseInt(elements.numResources.value) || 3;
+      elements.resourceInputs.innerHTML = '';
+      
+      for (let i = 1; i <= appState.numResources; i++) {
+        const name = `R${i}`;
+        
+        const formGroup = document.createElement('div');
+        formGroup.className = 'form-group';
+        
+        const label = document.createElement('label');
+        label.textContent = `Resource ${name} units:`;
+        
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min = '1';
+        input.value = appState.tempResources[name] || '';
+        input.id = `resource-${name}`;
+        input.addEventListener('change', (e) => {
+          const value = parseInt(e.target.value) || '';
+          appState.tempResources[name] = value;
+        });
+        
+        formGroup.appendChild(label);
+        formGroup.appendChild(input);
+        elements.resourceInputs.appendChild(formGroup);
+      }
+    }
+
+    // Update the number of processes
+    function updateNumProcesses() {
+      appState.numProcesses = parseInt(elements.numProcesses.value) || 3;
+    }
+
+    // Submit resources and move to process configuration
+    function submitResources() {
+      // Validate resources
+      const validResources = {};
+      let valid = true;
+      
+      for (let i = 1; i <= appState.numResources; i++) {
+        const name = `R${i}`;
+        const input = document.getElementById(`resource-${name}`);
+        const value = parseInt(input.value);
+        
+        if (isNaN(value) || value < 1) {
+          valid = false;
+          break;
+        }
+        
+        validResources[name] = value;
+      }
+      
+      if (!valid) {
+        alert("Please fill in all resource fields with valid numbers");
+        return;
+      }
+      
+      appState.resources = validResources;
+      appState.configStep = 2;
+      
+      // Update UI
+      elements.resourceConfig.classList.add('hidden');
+      elements.processConfig.classList.remove('hidden');
+      
+      // Set up process inputs
+      updateProcessInputs();
+    }
+
+    // Update process input fields
+    function updateProcessInputs() {
+      elements.processTitle.textContent = `Configure Process ${appState.currentProcessIndex + 1}/${appState.numProcesses}`;
+      elements.processResourceInputs.innerHTML = '';
+      
+      // Reset temp process
+      appState.tempProcess = { 
+        pid: `P${appState.currentProcessIndex + 1}`, 
+        max_claim: {}, 
+        priority: 1,
+        waiting_time: 0
+      };
+      
+      // Create inputs for each resource
+      Object.keys(appState.resources).forEach(resource => {
+        const formGroup = document.createElement('div');
+        formGroup.className = 'form-group';
+        
+        const label = document.createElement('label');
+        label.textContent = `Max units of ${resource} needed:`;
+        
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min = '0';
+        input.max = appState.resources[resource];
+        input.value = appState.tempProcess.max_claim[resource] || 0;
+        input.addEventListener('change', (e) => {
+          const value = parseInt(e.target.value) || 0;
+          appState.tempProcess.max_claim[resource] = value;
+        });
+        
+        formGroup.appendChild(label);
+        formGroup.appendChild(input);
+        elements.processResourceInputs.appendChild(formGroup);
+      });
+      
+      // Add priority input
+      const priorityGroup = document.createElement('div');
+      priorityGroup.className = 'form-group';
+      
+      const priorityLabel = document.createElement('label');
+      priorityLabel.textContent = 'Process Priority (1-10):';
+      
+      const priorityInput = document.createElement('input');
+      priorityInput.type = 'number';
+      priorityInput.min = '1';
+      priorityInput.max = '10';
+      priorityInput.value = appState.tempProcess.priority;
+      priorityInput.addEventListener('change', (e) => {
+        const value = Math.min(Math.max(parseInt(e.target.value) || 1, 1), 10);
+        appState.tempProcess.priority = value;
+      });
+      
+      priorityGroup.appendChild(priorityLabel);
+      priorityGroup.appendChild(priorityInput);
+      elements.processResourceInputs.appendChild(priorityGroup);
+      
+      // Update button text
+      if (appState.currentProcessIndex + 1 < appState.numProcesses) {
+        elements.submitProcess.textContent = 'Next Process';
+      } else {
+        elements.submitProcess.textContent = 'Run Simulation';
+      }
+    }
+
+    // Submit a process
+    function submitProcess() {
+      // Validate process
+      let valid = true;
+      Object.keys(appState.resources).forEach(key => {
+        if (appState.tempProcess.max_claim[key] === undefined || 
+            isNaN(appState.tempProcess.max_claim[key])) {
+          valid = false;
+        }
+      });
+      
+      if (!valid) {
+        alert("Please fill in all resource needs with valid numbers");
+        return;
+      }
+      
+      // Add the process
+      appState.processes.push({
+        pid: appState.tempProcess.pid,
+        max_claim: {...appState.tempProcess.max_claim},
+        priority: appState.tempProcess.priority,
+        waiting_time: appState.tempProcess.waiting_time
+      });
+      
+      // Move to next process or run simulation
+      appState.currentProcessIndex++;
+      
+      if (appState.currentProcessIndex < appState.numProcesses) {
+        updateProcessInputs();
+      } else {
+        appState.configStep = 3;
+        elements.processConfig.classList.add('hidden');
+        elements.simulationResults.classList.remove('hidden');
+        runSimulation();
+      }
+    }
+
+    // Run the simulation
+    function runSimulation() {
+      const game = new ResourceAllocationGame(appState.resources, appState.processes);
+      
+      // Check initial safety
+      const [safe, sequence] = game.is_safe_state();
+      appState.initialSafe = safe;
+      appState.initialSequence = sequence || [];
+      
+      // Build safe schedule
+      const [strat, allocSeq, execSeq] = game.build_safe_schedule();
+      appState.strategy = strat;
+      appState.allocationSequence = allocSeq;
+      appState.executionSequence = execSeq;
+      
+      // Initialize simulation state
+      initSimulationState();
+      
+      // Update UI
+      updateSimulationUI();
+    }
+
+    // Initialize simulation state
+    function initSimulationState() {
+      appState.simulationState = {
+        available: {...appState.resources},
+        allocated: {},
+        need: {},
+        status: {}
+      };
+      
+      for (const process of appState.processes) {
+        appState.simulationState.allocated[process.pid] = {};
+        appState.simulationState.need[process.pid] = {};
+        appState.simulationState.status[process.pid] = "waiting";
+        
+        for (const resource of Object.keys(appState.resources)) {
+          appState.simulationState.allocated[process.pid][resource] = 0;
+          appState.simulationState.need[process.pid][resource] = process.max_claim[resource] || 0;
+        }
+      }
+      
+      appState.simulationStep = -1;
+      appState.simulationCompleted = false;
+      
+      // Update button states
+      elements.resetSteps.disabled = true;
+      elements.nextStep.disabled = false;
+      elements.nextStep.textContent = 'Start Simulation';
+    }
+
+    // Update the simulation UI
+    function updateSimulationUI() {
+      // Update safety status
+      elements.safetyStatus.className = appState.initialSafe ? 'status-box status-safe' : 'status-box status-unsafe';
+      elements.safetyStatus.innerHTML = `
+        <strong>Initial State: ${appState.initialSafe ? 'SAFE' : 'UNSAFE'}</strong>
+        ${appState.initialSafe ? `<div><p>A possible safe sequence is: ${appState.initialSequence.join(' → ')}</p></div>` : ''}
+      `;
+      
+      // Update strategy
+      elements.strategy.textContent = appState.strategy;
+      
+      // Update resource visualization
+      elements.resourceVisualization.innerHTML = '';
+      Object.keys(appState.resources).forEach(resource => {
+        const resourceBox = document.createElement('div');
+        resourceBox.className = 'resource-box';
+        
+        const resourceName = document.createElement('div');
+        resourceName.textContent = resource;
+        
+        const resourceBar = document.createElement('div');
+        resourceBar.className = 'resource-bar';
+        
+        const available = appState.simulationState.available[resource] || 0;
+        const max = appState.resources[resource];
+        const percentage = max > 0 ? (available / max) * 100 : 0;
+        
+        const resourceFill = document.createElement('div');
+        resourceFill.className = 'resource-fill';
+        resourceFill.style.height = `${percentage}%`;
+        
+        const resourceText = document.createElement('div');
+        resourceText.textContent = `${available}/${max}`;
+        
+        resourceBar.appendChild(resourceFill);
+        resourceBox.appendChild(resourceName);
+        resourceBox.appendChild(resourceBar);
+        resourceBox.appendChild(resourceText);
+        
+        elements.resourceVisualization.appendChild(resourceBox);
+      });
+      
+      // Update process visualization
+      elements.processVisualization.innerHTML = '';
+      appState.processes.forEach(process => {
+        const processCircle = document.createElement('div');
+        const status = appState.simulationState.status[process.pid] || 'waiting';
+        processCircle.className = `process-circle process-${status}`;
+        processCircle.textContent = process.pid;
+        
+        elements.processVisualization.appendChild(processCircle);
+      });
+      
+      // Update allocation table
+      elements.allocationTableContainer.innerHTML = '';
+      const table = document.createElement('table');
+      
+      const thead = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      
+      const processHeader = document.createElement('th');
+      processHeader.textContent = 'Process';
+      headerRow.appendChild(processHeader);
+      
+      Object.keys(appState.resources).forEach(r => {
+        const resourceHeader = document.createElement('th');
+        resourceHeader.textContent = `${r} (Allocated/Need)`;
+        headerRow.appendChild(resourceHeader);
+      });
+      
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+      
+      const tbody = document.createElement('tbody');
+      appState.processes.forEach(process => {
+        const row = document.createElement('tr');
+        
+        const processCell = document.createElement('td');
+        processCell.textContent = process.pid;
+        row.appendChild(processCell);
+        
+        Object.keys(appState.resources).forEach(r => {
+          const resourceCell = document.createElement('td');
+          const allocated = appState.simulationState.allocated[process.pid]?.[r] || 0;
+          const need = appState.simulationState.need[process.pid]?.[r] || 0;
+          resourceCell.textContent = `${allocated}/${need}`;
+          row.appendChild(resourceCell);
+        });
+        
+        tbody.appendChild(row);
+      });
+      
+      table.appendChild(tbody);
+      elements.allocationTableContainer.appendChild(table);
+      
+      // Update steps list
+      elements.stepsList.innerHTML = '';
+      appState.allocationSequence.forEach((step, index) => {
+        const [pid, resource, amount] = step;
+        const stepItem = document.createElement('div');
+        stepItem.className = `step-item ${appState.simulationStep === index ? 'current-step' : ''}`;
+        stepItem.textContent = `Step ${index + 1}: Allocate ${amount} unit(s) of ${resource} to Process ${pid}`;
+        
+        elements.stepsList.appendChild(stepItem);
+      });
+      
+      appState.executionSequence.forEach((pid, index) => {
+        const stepIndex = appState.allocationSequence.length + index;
+        const stepItem = document.createElement('div');
+        stepItem.className = `step-item ${appState.simulationStep === stepIndex ? 'current-step' : ''}`;
+        stepItem.textContent = `Execute: Process ${pid} completes and releases resources`;
+        
+        elements.stepsList.appendChild(stepItem);
+      });
+      
+      // Update completion status
+      if (appState.simulationCompleted) {
+        elements.completionStatus.className = appState.executionSequence.length === appState.processes.length ? 
+          'status-box status-safe' : 'status-box status-unsafe';
+        elements.completionStatus.innerHTML = `
+          <strong>
+            ${appState.executionSequence.length === appState.processes.length 
+              ? 'All processes completed successfully!' 
+              : 'Could not find a complete safe schedule to prevent deadlock!'}
+          </strong>
+          ${appState.executionSequence.length === appState.processes.length 
+            ? `<p>Safe execution sequence: ${appState.executionSequence.join(' → ')}</p>` 
+            : ''}
+        `;
+        elements.completionStatus.classList.remove('hidden');
+      } else {
+        elements.completionStatus.classList.add('hidden');
+      }
+    }
+
+    // Reset the simulation
+    function resetSimulation() {
+      appState.configStep = 1;
+      appState.resources = {};
+      appState.processes = [];
+      appState.tempResources = {};
+      appState.tempProcess = { pid: "", max_claim: {}, priority: 1 };
+      appState.currentProcessIndex = 0;
+      appState.initialSafe = null;
+      appState.initialSequence = [];
+      appState.strategy = "";
+      appState.allocationSequence = [];
+      appState.executionSequence = [];
+      appState.simulationStep = -1;
+      appState.simulationCompleted = false;
+      
+      // Reset UI
+      elements.resourceConfig.classList.remove('hidden');
+      elements.processConfig.classList.add('hidden');
+      elements.simulationResults.classList.add('hidden');
+      elements.numResources.value = 3;
+      elements.numProcesses.value = 3;
+      updateResourceInputs();
+      updateNumProcesses();
+      }
+      
+      // Reset simulation steps
+      function resetSteps() {
+      initSimulationState();
+      updateSimulationUI();
+      }
+      
+      // Step through the simulation
+      function stepSimulation() {
+      if (appState.simulationStep >= appState.allocationSequence.length + appState.executionSequence.length - 1) {
+      appState.simulationCompleted = true;
+      elements.nextStep.disabled = true;
+      elements.nextStep.textContent = 'Simulation Complete';
+      updateSimulationUI();
+      return;
+      }
+      
+      appState.simulationStep++;
+      elements.resetSteps.disabled = false;
+      
+      // Handle allocation steps
+      if (appState.simulationStep < appState.allocationSequence.length) {
+      const [pid, resource, amount] = appState.allocationSequence[appState.simulationStep];
+      appState.simulationState.available[resource] -= amount;
+      appState.simulationState.allocated[pid][resource] += amount;
+      appState.simulationState.need[pid][resource] -= amount;
+      appState.simulationState.status[pid] = "running";
+      
+      // Check if process is completed
+      const processCompleted = Object.keys(appState.resources).every(
+      r => appState.simulationState.need[pid][r] === 0
+      );
+      if (processCompleted) {
+      appState.simulationState.status[pid] = "completed";
+      }
+      }
+      // Handle execution steps
+      else {
+      const executionIndex = appState.simulationStep - appState.allocationSequence.length;
+      const pid = appState.executionSequence[executionIndex];
+      appState.simulationState.status[pid] = "completed";
+      
+      // Release resources
+      Object.keys(appState.resources).forEach(resource => {
+      appState.simulationState.available[resource] += appState.simulationState.allocated[pid][resource];
+      appState.simulationState.allocated[pid][resource] = 0;
+      });
+      }
+      
+      elements.nextStep.textContent = appState.simulationStep < appState.allocationSequence.length + appState.executionSequence.length - 1
+      ? 'Next Step'
+      : 'Finish Simulation';
+      
+      updateSimulationUI();
+      }
+      
+      // Start the application
+      init();
+      </script>
+      
+      </body> </html>
